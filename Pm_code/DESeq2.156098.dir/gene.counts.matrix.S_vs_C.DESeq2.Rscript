@@ -1,0 +1,38 @@
+if (! require(edgeR)) {
+   source("https://bioconductor.org/biocLite.R")
+   biocLite("edgeR")
+   library(edgeR)
+}
+
+if (! require(DESeq2)) {
+   source("https://bioconductor.org/biocLite.R")
+   biocLite("DESeq2")
+   library(DESeq2)
+}
+
+data = read.table("/public1/home/l0s000634/DESeq2/gene.counts.matrix", header=T, row.names=1, com='')
+col_ordering = c(4,5,6,1,2,3)
+rnaseqMatrix = data[,col_ordering]
+rnaseqMatrix = round(rnaseqMatrix)
+rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > 1) >= 2,]
+conditions = data.frame(conditions=factor(c(rep("S", 3), rep("C", 3))))
+rownames(conditions) = colnames(rnaseqMatrix)
+ddsFullCountTable <- DESeqDataSetFromMatrix(
+    countData = rnaseqMatrix,
+    colData = conditions,
+    design = ~ conditions)
+dds = DESeq(ddsFullCountTable)
+contrast=c("conditions","S","C")
+res = results(dds, contrast)
+baseMeanA <- rowMeans(counts(dds, normalized=TRUE)[,colData(dds)$conditions == "S"])
+baseMeanB <- rowMeans(counts(dds, normalized=TRUE)[,colData(dds)$conditions == "C"])
+res = cbind(baseMeanA, baseMeanB, as.data.frame(res))
+res = cbind(sampleA="S", sampleB="C", as.data.frame(res))
+res$padj[is.na(res$padj)]  <- 1
+res = as.data.frame(res[order(res$pvalue),])
+write.table(res, file='gene.counts.matrix.S_vs_C.DESeq2.DE_results', sep='	', quote=FALSE)
+write.table(rnaseqMatrix, file='gene.counts.matrix.S_vs_C.DESeq2.count_matrix', sep='	', quote=FALSE)
+source("/public1/home/l0s000634/miniconda3/opt/trinity-2.15.2/Analysis/DifferentialExpression/R/rnaseq_plot_funcs.R")
+pdf("gene.counts.matrix.S_vs_C.DESeq2.DE_results.MA_n_Volcano.pdf")
+plot_MA_and_Volcano(rownames(res), log2(res$baseMean+1), res$log2FoldChange, res$padj)
+dev.off()

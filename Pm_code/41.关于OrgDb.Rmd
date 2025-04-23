@@ -1,0 +1,64 @@
+# 准备OrgDb
+
+GO 富集中需要用到OrgDb, 分三种情况。
+
+## 直接安装OrgDb
+
+Bioconductor 上有19个物种的OrgDb安装相应的R包后 可以直接使用。参考：http://bioconductor.org/packages/release/BiocViews.html#___OrgDb。
+
+```{r}
+library(org.Hs.eg.db)
+k = head(keys(org.Hs.eg.db))
+k
+```
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+```{r}
+library(clusterProfiler)
+x <- c("GPX3",  "GLRX",   "LBP",   "CRYAB", "DEFB1", "HCLS1",   "SOD2",   "HSPA2",
+       "ORM1",  "IGFBP1", "PTHLH", "GPC3",  "IGFBP3","TOB1",    "MITF",   "NDRG1")
+bitr(x, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+```
+
+## 从 AnnotionHub下载 OrgDb
+
+```{r}
+library(AnnotationHub)
+ah <- AnnotationHub()
+```
+
+查询支持的物种
+
+```{r}
+ah_orgdb = ah[ah$rdataclass=="OrgDb"]
+query(ah_orgdb, "Petromyzon marinus")
+```
+
+下载 OrgDb
+
+```{r}
+sweet_orange_orgdb = ah[["AH101341"]]
+```
+使用方法跟第一种一样
+
+```{r}
+columns(sweet_orange_orgdb)
+```
+
+## 使用AnnotationForge构建
+
+构建 OrgDB 用的软件包是张旭东老师开发的 emcp, http://git.genek.cn:3333/zhxd2/emcp
+
+```{bash eval=F}
+Rscript /pub/software/emcp/emapperx.R out.emapper.annotations proteins.fa
+```
+
+构建好之后，可以直接加载
+
+```{r}
+library(org.My.eg.db, lib.loc = "13.function/R_Library/")
+```
+

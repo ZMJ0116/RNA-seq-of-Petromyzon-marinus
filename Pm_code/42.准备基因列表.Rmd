@@ -1,0 +1,35 @@
+# 其他物种的富集分析
+
+## 准备基因列表
+
+```{r}
+my_deg_result <- filter(deg_result, 
+                       sampleA == "Cs5",
+                       sampleB == "Cs1") %>%
+  arrange(desc(abs(log2FoldChange)))
+```
+
+1. 候选基因向量（gene）
+
+一个字符型向量，包含感兴趣的基因，如差异表达基因、WGCNA 得到的关键模块里的基因、PCA 中某个PC loadings 高的基因。
+
+```{r}
+gene <- filter(my_deg_result, 
+               direction != "NS") %>%
+  pull(gene_id)
+```
+
+
+2. 基因差异向量（geneList）
+
+一个有名向量，记录差异大小，名字为基因ID，值为 logFC，按 logFC 降序排列。
+
+```{r}
+geneList <- my_deg_result$log2FoldChange
+names(geneList) <- my_deg_result$gene_id
+geneList <- sort(geneList, decreasing = T)
+```
+
+
+
+

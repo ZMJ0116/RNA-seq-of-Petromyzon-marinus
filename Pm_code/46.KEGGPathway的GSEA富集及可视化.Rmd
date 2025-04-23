@@ -1,0 +1,13 @@
+# KEGG Pathway 的 GSEA富集及可视化
+
+### KEGG Pathway GSEA 富集
+
+```{r}
+ekp2 = GSEA(
+  geneList,
+  TERM2GENE = pathway2gene,
+  TERM2NAME = pathway2name,
+  minGSSize = 10,
+  maxGSSize = 500,
+  pvalueCutoff = 0.05)
+```

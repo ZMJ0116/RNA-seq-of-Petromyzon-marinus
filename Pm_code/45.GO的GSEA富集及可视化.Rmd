@@ -1,0 +1,27 @@
+# GO 的GSEA富集及可视化
+
+## GO GSEA 富集
+
+```{r}
+library(clusterProfiler)
+library(AnnotationDbi)
+pm.db <- AnnotationDbi::loadDb("org.Petromyzon_marinus.eg.sqlite")
+ego2 <- gseGO(geneList     = geneList,
+              OrgDb        = pm.db,
+              keyType      = "SYMBOL",
+              ont          = "ALL",
+              minGSSize    = 50,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
+head(ego2)
+ego2_df <- as.data.frame(ego2)
+View(ego2_df)
+```
+
+## 画图
+
+```{r}
+gseaplot2(ego2, geneSetID = "GO:0046914",
+          pvalue_table = TRUE)
+```

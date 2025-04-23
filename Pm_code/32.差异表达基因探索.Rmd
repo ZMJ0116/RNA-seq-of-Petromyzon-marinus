@@ -1,0 +1,128 @@
+# 差异表达基因探索
+
+## 导入数据
+
+导入所有的差异表达分析结果
+
+1. 方法一：先在Linux下合并，再导入
+```{r}
+library(readr)
+deg_result <- read_delim("24.DE_analysis/merge.DE_results", 
+    delim = "\t", escape_double = FALSE, 
+    trim_ws = TRUE)
+```
+
+2. 方法二：R语言读取再合并
+
+查找所有差异分析结果文件
+
+```{r eval=F}
+de_result_files = list.files(path = "24.DE_analysis/DESeq2.11587.dir", 
+           pattern = "DE_results$", 
+           full.names = T)
+de_result_files
+```
+
+```{r eval=F}
+de_result = read.table(de_result_files[1]) %>%
+  rownames_to_column(var = "gene_id")
+
+for (i in 2:length(de_result_files)) {
+  d = read.table(de_result_files[i]) %>%
+    rownames_to_column(var = "gene_id")
+  de_result = bind_rows(de_result, d)
+}
+```
+
+## 数据预处理
+
+```{r}
+library(tidyverse)
+# 去除无用的列
+select(deg_result, gene_id, sampleA, sampleB, log2FoldChange, padj) %>%
+  # 添加 direction 列
+  mutate(direction = if_else(abs(log2FoldChange) < 1 | padj > 0.05, 'ns', 
+                             if_else(log2FoldChange >= 1, 'up', 'down'))) -> deg_result
+```
+
+## 差异基因数量统计
+
+上下调基因数目统计
+
+```{r}
+filter(deg_result, direction != 'ns') %>%
+  group_by(sampleA, direction) %>%
+  summarise(count = n())
+```
+画一个条形图展示。 ggplot 明天讲解。。
+
+## 差异基因的韦恩图
+
+```{r}
+library(VennDiagram)
+de_list = list(
+    S = filter(de_result, sampleA == "S", sampleB == "C", direction != 'ns') %>% pull(gene_id),
+    Cs3 = filter(de_result, sampleA == "Cs3", sampleB == "Cs1", direction != 'ns') %>% pull(gene_id),
+    Cs4 = filter(de_result, sampleA == "Cs4", sampleB == "Cs1", direction != 'ns') %>% pull(gene_id),
+    Cs5 = filter(de_result, sampleA == "Cs5", sampleB == "Cs1", direction != 'ns') %>% pull(gene_id))
+
+#准备颜色
+library(RColorBrewer)
+RColorBrewer::brewer.pal(4, name = "Set1")
+venn.diagram(
+  x = de_list,
+  filename = "de_venn.tiff",
+  fill = RColorBrewer::brewer.pal(4, name = "Set1")
+  )
+```
+
+## 火山图
+
+```{r}
+my_deg_result = filter(deg_result, sampleA == 'S', sampleB == 'C') %>%
+  arrange(desc(abs(log2FoldChange)))
+```
+
+```{r}
+DESeq2_key_gene <- c("DUSP10","ANKRD10","SOX2","HPS1","CITED1","GLUL","GM2A","IQCC","BCL10","SNRNP70","CLU","LRRC17","SPHK2","ARGLU1")
+edgR_key_gene <- c()
+library(EnhancedVolcano)
+EnhancedVolcano(my_deg_result,
+                x = 'log2FoldChange',
+                y = 'padj',
+                lab = my_deg_result$gene_id,
+                FCcutoff = 1,
+                pCutoff = 0.05,
+                selectLab = key_gene
+              
+                )
+```
+
+
+### 热图
+
+```{r}
+top_de = filter(de_result, sampleA == 'Cs5', sampleB == 'Cs1') %>%
+  arrange(desc(abs(log2FoldChange))) %>%
+  slice(1:20) %>%
+  pull(gene_id)
+top_de_exp = gene_exp[top_de,]
+```
+
+```{r}
+library(pheatmap)
+pheatmap(log2(top_de_exp + 1))
+#标准化
+pheatmap(data,scale = "row")
+```
+### 热图
+```{r}
+ p <- pheatmap(data,scale = "row", 
+          border_color = "white",
+          #cellwidth = 10,cellheight = 10,
+          cutree_rows = 2,
+          cutree_cols = 2,
+          cellwidth = 40,cellheight = 10)
+```
+
+#cellwidth = 10,cellheight = 10,

@@ -1,0 +1,65 @@
+# KEGG Pathway 的 ORA富集及可视化
+
+## KEGG Pathway 富集
+
+查询物种是否支持：https://www.genome.jp/kegg/catalog/org_list.html
+
+
+### KEGG Pathway over-representation 富集
+
+如果你研究的物种在 KEGG 数据库中包含，可以使用 enrichKEGG 来做富集。否则就需要使用 enricher() 这个通用的富集函数。
+
+enricher() 还需要提供两个变量：
+
+1. TERM2GENE：Pathway 与基因的对应关系
+
+2. TERM2NAME：Pathway 的ID与名称对应关系
+
+#### 准备 TERM2NAME
+
+```{r}
+library(magrittr)
+get_path2name <- function(){
+  keggpathid2name.df <- clusterProfiler:::kegg_list("pathway")
+  keggpathid2name.df[,1] %<>% gsub("path:map", "", .)
+  colnames(keggpathid2name.df) <- c("path_id","path_name")
+  return(keggpathid2name.df)
+}
+pathway2name <- get_path2name()
+```
+
+#### 准备 TERM2GENE
+
+```{r}
+emapper <- read_delim("13.function/out.emapper.annotations", 
+                      "\t", escape_double = FALSE, col_names = FALSE, 
+                      comment = "#", trim_ws = TRUE) %>%
+  dplyr::select(GID = X1, 
+                COG = X7,
+                Gene_Name = X8,
+                Gene_Symbol = X9,
+                GO = X10,
+                KO = X12,
+                Pathway = X13
+                )
+```
+
+
+```{r}
+pathway2gene <- dplyr::select(emapper, Pathway, GID) %>%
+  separate_rows(Pathway, sep = ',', convert = F) %>%
+  filter(str_detect(Pathway, 'ko')) %>%
+  mutate(Pathway = str_remove(Pathway, 'ko'))
+```
+
+
+### 富集分析
+```{r}
+ekp <- enricher(gene,
+                TERM2GENE = pathway2gene,
+                TERM2NAME = pathway2name,
+                pvalueCutoff = 0.05,
+                qvalueCutoff = 0.05)
+head(ekp)
+```
+

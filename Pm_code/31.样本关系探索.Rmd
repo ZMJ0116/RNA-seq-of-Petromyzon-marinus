@@ -1,0 +1,115 @@
+# 样本关系分析
+
+## 导入数据
+
+1. 导入表达矩阵
+
+```{r}
+gene_exp = read.table(file = "23.Merge_result/gene.TMM.TPM.matrix")
+```
+
+2. 导入样本信息表
+
+```{r}
+library(tidyverse)
+read.table(file = "sample_info.txt") %>%
+  rename(group = "V1", sample = "V2") %>%
+  column_to_rownames(var = "sample") -> sample_info
+```
+
+
+## 样本相关性
+
+1. 计算相关系数
+
+```{r}
+gene_exp_test = data.frame(
+   row.names = c('Cs1', 'Cs2', 'Cs3', 'Cs4', 'Cs5'),
+   geneA = c(10, 20, 32, 15, 20),
+   geneB = c(20, 30, 43, 20, 30),
+   geneC = c(20, NA, 43, 10, 6)
+ )
+gene_exp_test
+```
+向量之间的表达
+
+```{r}
+cor(gene_exp_test$geneA, gene_exp_test$geneB, 
+    method = "pearson") # 计算 pearson 相关系数
+cor(gene_exp_test$geneA, gene_exp_test$geneC, 
+    method = "pearson", 
+    use = "complete.obs") # 只使用完整的观测
+```
+
+数据框之间的相关系数
+
+```{r}
+cor(gene_exp_test, use = "pairwise.complete.obs")
+```
+计算样本间相关系数
+```{r}
+sample_cor = round(cor(gene_exp), digits = 2)
+```
+
+2. 绘制热图
+
+```{r}
+library(pheatmap)
+pheatmap(sample_cor, 
+         cluster_rows = F, cluster_cols = F, # 不聚类
+         cellwidth = 15, cellheight = 15, # cell 大小
+         border_color = "white", # 边框颜色
+         fontsize = 8, # 字体大小
+         angle_col = 45, # 列倾斜
+         display_numbers = T, # 显示数值
+         fontsize_number = 5) # 数值字体大小
+```
+调整热图颜色，调色板：https://github.com/EmilHvitfeldt/r-color-palettes
+
+```{r}
+library(pheatmap)
+library(RColorBrewer)
+library(scales)
+show_col(brewer.pal(5, "OrRd"))
+
+pheatmap(sample_cor, 
+         color = brewer.pal(5, "OrRd"),
+         breaks = seq(0.6, 1, 0.1),
+         cluster_rows = F, cluster_cols = F, # 不聚类
+         cellwidth = 15, cellheight = 15, # cell 大小
+         border_color = "white", # 边框颜色
+         fontsize = 8, # 字体大小
+         angle_col = 45, # 列倾斜
+         display_numbers = T, # 显示数值
+         fontsize_number = 5) # 数值字体大小
+```
+
+## 样本聚类
+
+```{r}
+dist(t(gene_exp))
+```
+
+
+```{r}
+plot(hclust(dist(t(gene_exp))))
+```
+## 主成分分析
+
+```{r}
+library(PCAtools)
+ p1 = pca(gene_exp, metadata = sample_info, removeVar = 0.3)
+screeplot(p1)
+```
+
+```{r}
+biplot(p1,
+       x = 'PC1',
+       y = 'PC2',
+       colby = "group",legendPosition = "top",
+hline = 0, vline = 0,
+       encircle = T#, encircleFill = T,
+      # ellipse = T
+       )
+```
+
